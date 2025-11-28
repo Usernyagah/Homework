@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - TODO App{% endblock %}
+
+{% block content %}
+<div class="form-group">
+    <h2 style="margin-bottom: 20px;">Create New TODO</h2>
+    <form method="post" action="{% url 'create_todo' %}">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="title">Title *</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="due_date">Due Date</label>
+            <input type="datetime-local" id="due_date" name="due_date">
+        </div>
+        <button type="submit" class="btn btn-primary">Create TODO</button>
+    </form>
+</div>
+
+<hr style="margin: 30px 0; border: none; border-top: 2px solid #eee;">
+
+<h2 style="margin-bottom: 20px;">Your TODOs</h2>
+
+{% if todos %}
+    {% for todo in todos %}
+    <div class="todo-item {% if todo.is_resolved %}resolved{% endif %}">
+        <div class="todo-title">{{ todo.title }}</div>
+        {% if todo.description %}
+        <div class="todo-description">{{ todo.description }}</div>
+        {% endif %}
+        <div class="todo-meta">
+            Created: {{ todo.created_at|date:"M d, Y H:i" }}
+            {% if todo.due_date %}
+            | Due: {{ todo.due_date|date:"M d, Y H:i" }}
+            {% endif %}
+            | Status: {% if todo.is_resolved %}<strong style="color: #28a745;">Resolved</strong>{% else %}<strong style="color: #dc3545;">Pending</strong>{% endif %}
+        </div>
+        <div class="todo-actions">
+            <a href="{% url 'edit_todo' todo.id %}" class="btn btn-warning btn-sm">Edit</a>
+            <a href="{% url 'toggle_resolved' todo.id %}" class="btn btn-success btn-sm">
+                {% if todo.is_resolved %}Mark as Unresolved{% else %}Mark as Resolved{% endif %}
+            </a>
+            <a href="{% url 'delete_todo' todo.id %}" class="btn btn-danger btn-sm" 
+               onclick="return confirm('Are you sure you want to delete this TODO?');">Delete</a>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <h2>No TODOs yet!</h2>
+        <p>Create your first TODO above to get started.</p>
+    </div>
+{% endif %}
+{% endblock %}
+
