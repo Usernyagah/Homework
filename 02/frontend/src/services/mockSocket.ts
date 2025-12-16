@@ -87,11 +87,11 @@ class MockSocketService {
   }
 
   // Chat events
-  sendChatMessage(message: Omit<ChatMessage, 'id' | 'timestamp'>) {
+  sendChatMessage(roomId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) {
     // In mock mode, simulate server broadcasting to all users (including sender)
     // The Room.tsx listener will handle adding it to the store
     setTimeout(() => {
-      this.emit('chat_message', message);
+      this.emit('chat_message', { ...message, roomId });
     }, 50);
   }
 

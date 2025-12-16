@@ -38,7 +38,11 @@ export default function Room() {
     }
 
     // Listen for chat messages from other users
-    const handleChatMessage = (message: { userId: string; nickname: string; content: string }) => {
+    const handleChatMessage = (message: { userId: string; nickname: string; content: string; roomId?: string }) => {
+      // Only process messages for the current room
+      if (message.roomId && message.roomId !== roomId) {
+        return;
+      }
       const { addMessage } = useChatStore.getState();
       addMessage(message.userId, message.nickname, message.content);
     };
@@ -109,7 +113,7 @@ export default function Room() {
                 <UsersList />
               </div>
               <ControlPanel />
-              <ChatPanel />
+              <ChatPanel roomId={roomId} />
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>

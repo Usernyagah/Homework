@@ -8,7 +8,11 @@ import { Send, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
-export function ChatPanel() {
+interface ChatPanelProps {
+  roomId: string;
+}
+
+export function ChatPanel({ roomId }: ChatPanelProps) {
   const [message, setMessage] = useState('');
   const { messages } = useChatStore();
   const { currentUser } = useUserStore();
@@ -22,9 +26,9 @@ export function ChatPanel() {
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !currentUser) return;
+    if (!message.trim() || !currentUser || !roomId) return;
     
-    mockSocket.sendChatMessage({
+    mockSocket.sendChatMessage(roomId, {
       userId: currentUser.id,
       nickname: currentUser.nickname,
       content: message.trim(),

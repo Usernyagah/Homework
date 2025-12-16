@@ -19,11 +19,12 @@ describe('mockSocket chat functionality', () => {
       expect(message.userId).toBe(testMessage.userId);
       expect(message.nickname).toBe(testMessage.nickname);
       expect(message.content).toBe(testMessage.content);
+      expect(message.roomId).toBe('test-room');
       mockSocket.off('chat_message');
       done();
     });
 
-    mockSocket.sendChatMessage(testMessage);
+    mockSocket.sendChatMessage('test-room', testMessage);
   });
 
   it('should allow multiple listeners for chat_message', (done) => {
@@ -56,7 +57,7 @@ describe('mockSocket chat functionality', () => {
     mockSocket.on('chat_message', handler1);
     mockSocket.on('chat_message', handler2);
 
-    mockSocket.sendChatMessage(testMessage);
+    mockSocket.sendChatMessage('test-room', testMessage);
   });
 
   it('should work with chatStore integration', async () => {
@@ -76,7 +77,7 @@ describe('mockSocket chat functionality', () => {
     };
 
     mockSocket.on('chat_message', handleChatMessage);
-    mockSocket.sendChatMessage(testMessage);
+    mockSocket.sendChatMessage('test-room', testMessage);
 
     // Wait for the setTimeout in sendChatMessage
     await new Promise(resolve => setTimeout(resolve, 100));
