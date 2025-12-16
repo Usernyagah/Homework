@@ -14,13 +14,24 @@ class SocketService {
   private typingTimeout: NodeJS.Timeout | null = null;
 
   constructor() {
+    // Don't connect immediately - wait for explicit connect() call
+    // This prevents connection errors when backend isn't running
+  }
+
+  private initializeSocket() {
+    if (this.socket) return; // Already initialized
+
     // Get backend URL from environment or use default
     const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
     this.socket = io(backendUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
       reconnectionAttempts: 5,
+      timeout: 20000,
+      autoConnect: false, // Don't auto-connect - wait for explicit connect() call
+      forceNew: false, // Reuse existing connection if available
     });
 
     this.setupSocketListeners();
@@ -31,12 +42,37 @@ class SocketService {
 
     this.socket.on('connect', () => {
       this.connected = true;
+      console.log('[SocketService] Connected to backend');
       this.emit('connect');
     });
 
-    this.socket.on('disconnect', () => {
+    this.socket.on('disconnect', (reason) => {
       this.connected = false;
+      console.log('[SocketService] Disconnected:', reason);
       this.emit('disconnect');
+    });
+
+    this.socket.on('connect_error', (error) => {
+      console.warn('[SocketService] Connection error:', error.message);
+      if (error.description) {
+        console.warn('[SocketService] Error description:', error.description);
+      }
+      // Check if socket will auto-reconnect
+      if (this.socket && !this.socket.active) {
+        // Connection was denied by server - won't auto-reconnect
+        console.error('[SocketService] Connection denied - manual reconnect required');
+        this.connected = false;
+      }
+      // If socket.active is true, it will automatically try to reconnect
+    });
+
+    this.socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`[SocketService] Reconnection attempt ${attemptNumber}`);
+    });
+
+    this.socket.on('reconnect_failed', () => {
+      console.error('[SocketService] Reconnection failed - backend may be unavailable');
+      this.connected = false;
     });
 
     // Handle sync_state from server
@@ -102,8 +138,11 @@ class SocketService {
   }
 
   connect() {
-    // Socket auto-connects on creation
-    if (!this.connected && this.socket) {
+    // Initialize socket if not already done
+    this.initializeSocket();
+    
+    // Connect if not already connected
+    if (!this.connected && this.socket && !this.socket.connected) {
       this.socket.connect();
     }
   }
