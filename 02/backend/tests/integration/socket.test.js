@@ -102,5 +102,53 @@ describe("Socket.IO events", () => {
     },
     10000
   );
+
+  it(
+    "chat_message broadcasts to all users in room",
+    async () => {
+    const { body } = await request(server.app).post("/rooms");
+    const roomId = body.roomId;
+
+    const clientA = await connectClient(port, {
+      roomId,
+      userId: "A",
+      username: "Alice",
+    });
+    const clientB = await connectClient(port, {
+      roomId,
+      userId: "B",
+      username: "Bob",
+    });
+
+    // Client B listens for chat message
+    const promiseB = waitForEvent(clientB, "chat_message");
+    // Client A also listens to verify sender receives it too
+    const promiseA = waitForEvent(clientA, "chat_message");
+
+    // Client A sends a chat message
+    clientA.emit("chat_message", {
+      roomId,
+      userId: "A",
+      nickname: "Alice",
+      content: "Hello everyone!",
+    });
+
+    // Both clients should receive the message
+    const payloadB = await promiseB;
+    const payloadA = await promiseA;
+
+    expect(payloadB.userId).toBe("A");
+    expect(payloadB.nickname).toBe("Alice");
+    expect(payloadB.content).toBe("Hello everyone!");
+
+    expect(payloadA.userId).toBe("A");
+    expect(payloadA.nickname).toBe("Alice");
+    expect(payloadA.content).toBe("Hello everyone!");
+
+    clientA.close();
+    clientB.close();
+    },
+    10000
+  );
 });
 

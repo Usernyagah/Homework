@@ -42,6 +42,17 @@ const registerSocketHandlers = (io) => {
       socket.to(roomId).emit("language_change", { language });
     });
 
+    socket.on("chat_message", ({ roomId, userId, nickname, content }) => {
+      if (!userId || !content) return;
+      // Get roomId from socket mapping if not provided in payload
+      const mapping = socketRoomMap.get(socket.id);
+      const targetRoomId = roomId || mapping?.roomId;
+      if (!targetRoomId) return;
+      
+      // Broadcast chat message to all users in the room (including sender)
+      io.to(targetRoomId).emit("chat_message", { userId, nickname, content });
+    });
+
     const handleLeave = () => {
       const mapping = socketRoomMap.get(socket.id);
       if (!mapping) return;

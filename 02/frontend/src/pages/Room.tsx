@@ -37,13 +37,22 @@ export default function Room() {
       joinRoom();
     }
 
+    // Listen for chat messages from other users
+    const handleChatMessage = (message: { userId: string; nickname: string; content: string }) => {
+      const { addMessage } = useChatStore.getState();
+      addMessage(message.userId, message.nickname, message.content);
+    };
+
+    mockSocket.on('chat_message', handleChatMessage);
+
     return () => {
       // Cleanup on unmount
+      mockSocket.off('chat_message', handleChatMessage);
       if (currentUser) {
         mockSocket.leaveRoom(currentUser.id);
       }
     };
-  }, [roomId]);
+  }, [roomId, currentUser]);
 
   const joinRoom = () => {
     if (!currentUser || !roomId) return;
