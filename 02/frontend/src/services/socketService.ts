@@ -300,14 +300,41 @@ class SocketService {
 
   // Chat events
   sendChatMessage(roomId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) {
-    if (this.socket && this.connected) {
-      this.socket.emit('chat_message', {
-        roomId,
-        userId: message.userId,
-        nickname: message.nickname,
-        content: message.content,
-      });
+    console.log('[SocketService] sendChatMessage called:', { roomId, message, connected: this.connected, socketExists: !!this.socket });
+    
+    if (!this.socket) {
+      console.error('[SocketService] Socket not initialized - cannot send message');
+      return;
     }
+    
+    if (!this.connected) {
+      console.warn('[SocketService] Socket not connected - attempting to connect');
+      this.connect();
+      // Try again after a short delay
+      setTimeout(() => {
+        if (this.socket && this.connected) {
+          this.socket.emit('chat_message', {
+            roomId,
+            userId: message.userId,
+            nickname: message.nickname,
+            content: message.content,
+          });
+          console.log('[SocketService] Message sent after reconnection');
+        } else {
+          console.error('[SocketService] Still not connected - message not sent');
+        }
+      }, 500);
+      return;
+    }
+    
+    this.socket.emit('chat_message', {
+      roomId,
+      userId: message.userId,
+      nickname: message.nickname,
+      content: message.content,
+    });
+    
+    console.log('[SocketService] Message emitted successfully');
   }
 
   isConnected() {

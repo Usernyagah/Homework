@@ -26,7 +26,43 @@ export function ChatPanel({ roomId }: ChatPanelProps) {
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !currentUser || !roomId) return;
+    
+    // Validation checks
+    if (!message.trim()) {
+      console.warn('[ChatPanel] Cannot send empty message');
+      return;
+    }
+    
+    if (!currentUser) {
+      console.error('[ChatPanel] No current user - cannot send message');
+      return;
+    }
+    
+    if (!roomId) {
+      console.error('[ChatPanel] No roomId - cannot send message');
+      return;
+    }
+    
+    if (!socketService.isConnected()) {
+      console.warn('[ChatPanel] Socket not connected - attempting to connect');
+      socketService.connect();
+      // Wait a bit for connection, then try again
+      setTimeout(() => {
+        if (socketService.isConnected()) {
+          socketService.sendChatMessage(roomId, {
+            userId: currentUser.id,
+            nickname: currentUser.nickname,
+            content: message.trim(),
+          });
+          setMessage('');
+        } else {
+          console.error('[ChatPanel] Still not connected - message not sent');
+        }
+      }, 500);
+      return;
+    }
+    
+    console.log('[ChatPanel] Sending message:', { roomId, userId: currentUser.id, content: message.trim() });
     
     socketService.sendChatMessage(roomId, {
       userId: currentUser.id,
@@ -83,10 +119,23 @@ export function ChatPanel({ roomId }: ChatPanelProps) {
         <Input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type a message..."
+          placeholder={currentUser ? "Type a message..." : "Enter nickname to chat"}
           className="flex-1 h-9"
+          disabled={!currentUser || !socketService.isConnected()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage(e as any);
+            }
+          }}
         />
-        <Button type="submit" size="icon" className="h-9 w-9" disabled={!message.trim()}>
+        <Button 
+          type="submit" 
+          size="icon" 
+          className="h-9 w-9" 
+          disabled={!message.trim() || !currentUser || !socketService.isConnected()}
+          title={!socketService.isConnected() ? "Connecting..." : "Send message"}
+        >
           <Send className="h-4 w-4" />
         </Button>
       </form>
