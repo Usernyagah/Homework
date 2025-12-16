@@ -121,7 +121,7 @@ export function ChatPanel({ roomId }: ChatPanelProps) {
           onChange={(e) => setMessage(e.target.value)}
           placeholder={currentUser ? "Type a message..." : "Enter nickname to chat"}
           className="flex-1 h-9"
-          disabled={!currentUser || !socketService.isConnected()}
+          disabled={!currentUser}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
