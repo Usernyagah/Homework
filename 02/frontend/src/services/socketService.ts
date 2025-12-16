@@ -75,27 +75,44 @@ class SocketService {
       this.connected = false;
     });
 
-    // Handle sync_state from server
+    // Handle sync_state from server (sent when user joins room)
     this.socket.on('sync_state', (data: { code: string; language: string; users: any[] }) => {
+      console.log('[SocketService] Received sync_state:', data);
+      
       if (data.code !== undefined) {
         useEditorStore.getState().setCode(data.code);
       }
       if (data.language) {
         useEditorStore.getState().setLanguage(data.language);
       }
-      // Update users in room store
+      
+      // Replace entire user list with users from server
       if (data.users && Array.isArray(data.users)) {
-        // Clear existing users first to avoid duplicates
-        const roomStore = useRoomStore.getState();
-        data.users.forEach((user) => {
-          roomStore.addUser({
-            id: user.userId || user.id,
-            nickname: user.username || user.nickname || 'Anonymous',
-            canEdit: true,
-            isTyping: false,
-            joinedAt: new Date(user.joinedAt || Date.now()),
-          });
-        });
+        const currentUserId = useUserStore.getState().currentUser?.id;
+        
+        // Map backend user format { userId, username } to frontend format
+        const mappedUsers = data.users.map((user, index) => ({
+          id: user.userId || user.id,
+          nickname: user.username || user.nickname || 'Anonymous',
+          canEdit: true,
+          isTyping: false,
+          isHost: index === 0, // First user in list is host
+          joinedAt: new Date(user.joinedAt || Date.now()),
+        }));
+        
+        console.log('[SocketService] Mapped users:', mappedUsers);
+        
+        // Set room with updated user list (setRoom automatically updates users array)
+        if (this.currentRoomId) {
+          useRoomStore.getState().setRoom({
+            id: this.currentRoomId,
+            users: mappedUsers,
+            code: data.code || '',
+            language: data.language || 'javascript',
+            hostId: mappedUsers[0]?.id || currentUserId || '',
+            createdAt: new Date(),
+          } as any);
+        }
       }
     });
 
@@ -109,20 +126,31 @@ class SocketService {
       useEditorStore.getState().setLanguage(data.language);
     });
 
-    // Handle user joined
+    // Handle user joined (emitted to other users when someone joins)
     this.socket.on('user_joined', (data: { userId: string; username?: string }) => {
-      useRoomStore.getState().addUser({
-        id: data.userId,
-        nickname: data.username || 'Anonymous',
-        canEdit: true,
-        isTyping: false,
-        joinedAt: new Date(),
-      });
+      console.log('[SocketService] User joined:', data);
+      const roomStore = useRoomStore.getState();
+      
+      // Don't add if already exists (avoid duplicates)
+      const existingUser = roomStore.users.find(u => u.id === data.userId);
+      if (!existingUser) {
+        roomStore.addUser({
+          id: data.userId,
+          nickname: data.username || 'Anonymous',
+          canEdit: true,
+          isTyping: false,
+          isHost: false, // Host is determined by order in sync_state
+          joinedAt: new Date(),
+        });
+        console.log('[SocketService] Added user to list. Total users:', roomStore.users.length);
+      }
     });
 
     // Handle user left
     this.socket.on('user_left', (data: { userId: string }) => {
+      console.log('[SocketService] User left:', data.userId);
       useRoomStore.getState().removeUser(data.userId);
+      console.log('[SocketService] Removed user. Remaining users:', useRoomStore.getState().users.length);
     });
 
     // Handle chat messages
