@@ -2,10 +2,12 @@ import { useEditorStore } from '@/stores/editorStore';
 import { useUserStore } from '@/stores/userStore';
 import { useRoomStore } from '@/stores/roomStore';
 import { mockApi } from '@/services/mockApi';
+import { socketService } from '@/services/socketService';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Play, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useParams } from 'react-router-dom';
 
 const LANGUAGES = [
   { value: 'javascript', label: 'JavaScript' },
@@ -13,12 +15,21 @@ const LANGUAGES = [
 ];
 
 export function ControlPanel() {
+  const { roomId } = useParams<{ roomId: string }>();
   const { code, language, setLanguage, isExecuting, setExecuting, setExecutionResult } = useEditorStore();
   const { currentUser } = useUserStore();
   const { users } = useRoomStore();
   
   const user = users.find((u) => u.id === currentUser?.id);
   const canEdit = user?.canEdit ?? true;
+
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage);
+    // Emit language change to other users
+    if (socketService.isConnected()) {
+      socketService.sendLanguageChange(newLanguage);
+    }
+  };
 
   const runCode = async () => {
     if (!code.trim()) {
@@ -53,7 +64,7 @@ export function ControlPanel() {
     <div className="space-y-4 p-4 border-t">
       <div className="space-y-2">
         <label className="text-sm font-medium text-muted-foreground">Language</label>
-        <Select value={language} onValueChange={setLanguage} disabled={!canEdit}>
+        <Select value={language} onValueChange={handleLanguageChange} disabled={!canEdit}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>

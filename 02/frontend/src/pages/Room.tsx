@@ -4,7 +4,7 @@ import { useUserStore } from '@/stores/userStore';
 import { useRoomStore } from '@/stores/roomStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useEditorStore } from '@/stores/editorStore';
-import { mockSocket } from '@/services/mockSocket';
+import { socketService } from '@/services/socketService';
 import { RoomHeader } from '@/components/room/RoomHeader';
 import { CodeEditor } from '@/components/editor/CodeEditor';
 import { OutputConsole } from '@/components/editor/OutputConsole';
@@ -37,23 +37,13 @@ export default function Room() {
       joinRoom();
     }
 
-    // Listen for chat messages from other users
-    const handleChatMessage = (message: { userId: string; nickname: string; content: string; roomId?: string }) => {
-      // Only process messages for the current room
-      if (message.roomId && message.roomId !== roomId) {
-        return;
-      }
-      const { addMessage } = useChatStore.getState();
-      addMessage(message.userId, message.nickname, message.content);
-    };
-
-    mockSocket.on('chat_message', handleChatMessage);
+    // Socket service handles chat messages automatically via setupSocketListeners
+    // No need for manual listener setup
 
     return () => {
       // Cleanup on unmount
-      mockSocket.off('chat_message', handleChatMessage);
       if (currentUser) {
-        mockSocket.leaveRoom(currentUser.id);
+        socketService.leaveRoom(currentUser.id);
       }
     };
   }, [roomId, currentUser]);
@@ -61,8 +51,8 @@ export default function Room() {
   const joinRoom = () => {
     if (!currentUser || !roomId) return;
     
-    mockSocket.connect();
-    mockSocket.joinRoom(roomId, currentUser);
+    socketService.connect();
+    socketService.joinRoom(roomId, currentUser);
     toast.success(`Welcome to room ${roomId}!`);
   };
 
@@ -74,8 +64,8 @@ export default function Room() {
     setTimeout(() => {
       const user = useUserStore.getState().currentUser;
       if (user && roomId) {
-        mockSocket.connect();
-        mockSocket.joinRoom(roomId, user);
+        socketService.connect();
+        socketService.joinRoom(roomId, user);
         toast.success(`Welcome, ${nickname}!`);
       }
     }, 100);

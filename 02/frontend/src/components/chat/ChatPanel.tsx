@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChatStore } from '@/stores/chatStore';
 import { useUserStore } from '@/stores/userStore';
-import { mockSocket } from '@/services/mockSocket';
+import { socketService } from '@/services/socketService';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Send, MessageSquare } from 'lucide-react';
@@ -28,7 +28,7 @@ export function ChatPanel({ roomId }: ChatPanelProps) {
     e.preventDefault();
     if (!message.trim() || !currentUser || !roomId) return;
     
-    mockSocket.sendChatMessage(roomId, {
+    socketService.sendChatMessage(roomId, {
       userId: currentUser.id,
       nickname: currentUser.nickname,
       content: message.trim(),

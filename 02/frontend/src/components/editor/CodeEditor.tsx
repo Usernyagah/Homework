@@ -2,7 +2,7 @@ import Editor from '@monaco-editor/react';
 import { useEditorStore } from '@/stores/editorStore';
 import { useUserStore } from '@/stores/userStore';
 import { useRoomStore } from '@/stores/roomStore';
-import { mockSocket } from '@/services/mockSocket';
+import { socketService } from '@/services/socketService';
 import { Loader2 } from 'lucide-react';
 
 export function CodeEditor() {
@@ -17,8 +17,8 @@ export function CodeEditor() {
     if (!value || !currentUser) return;
     
     setCode(value);
-    mockSocket.sendTypingStart(currentUser.id);
-    mockSocket.sendCodeChange(value, currentUser.id);
+    socketService.sendTypingStart(currentUser.id);
+    socketService.sendCodeChange(value, currentUser.id);
   };
 
   return (
