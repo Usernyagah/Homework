@@ -29,7 +29,7 @@ describe('mockApi', () => {
     });
 
     it('should reject unsupported languages', async () => {
-      const result = await mockApi.executeCode('print("Hello")', 'python');
+      const result = await mockApi.executeCode('print("Hello")', 'java');
       
       expect(result.error).toContain('not supported');
     });
