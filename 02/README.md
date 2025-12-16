@@ -14,7 +14,8 @@ A full-stack collaborative coding interview platform with real-time code syncing
 - Automated integration, socket, and API tests.
 
 ## Tech Stack
-- React + Vite (frontend)
+- React + Vite + TypeScript (frontend)
+- Tailwind CSS + shadcn/ui-style component library (frontend UI)
 - Express.js + Socket.IO (backend)
 - vm2 sandbox + child_process for code execution
 - Vitest, supertest, socket.io-client for testing
@@ -22,20 +23,35 @@ A full-stack collaborative coding interview platform with real-time code syncing
 ## Folder Structure
 ```
 .
-├─ frontend/               # React + Vite app
+├─ frontend/                   # React + Vite + TS SPA
 │  ├─ src/
+│  │  ├─ components/           # UI, editor, chat, room components
+│  │  ├─ pages/                # Home, Room, NotFound routes
+│  │  ├─ stores/               # Zustand stores for chat, editor, room, user
+│  │  ├─ services/             # mock API/socket, Pyodide integration
+│  │  └─ tests/                # frontend unit/integration tests (Vitest)
+│  ├─ vite.config.ts
+│  ├─ tailwind.config.ts
 │  └─ package.json
-├─ backend/                # Express + Socket.IO server
+├─ backend/                    # Express + Socket.IO server
 │  ├─ src/
 │  │  ├─ controllers/
 │  │  ├─ routes/
 │  │  ├─ services/
-│  │  ├─ sandbox/
+│  │  ├─ sandbox/              # jsSandbox (vm2) + process runner
 │  │  ├─ utils/
 │  │  ├─ socket.js
 │  │  └─ server.js
-│  ├─ tests/               # Vitest integration/unit tests
+│  ├─ tests/                   # Vitest unit + integration + E2E tests
+│  │  ├─ integration/
+│  │  ├─ executeService.test.js
+│  │  └─ roomService.test.js
 │  └─ package.json
+├─ .github/
+│  └─ workflows/
+│     └─ ci.yml                # GitHub Actions CI for frontend/backend tests
+├─ Dockerfile
+├─ package.json                # Root dev scripts (e.g., run both dev servers)
 └─ README.md
 ```
 
@@ -66,7 +82,7 @@ npm run dev    # starts Vite dev server (port 8080 by default)
 ```
 
 ## Running Tests
-- Backend integration/API/socket tests (Vitest):
+- Backend unit + integration/API/socket tests (Vitest):
   ```bash
   cd backend
   npm run test
@@ -74,8 +90,10 @@ npm run dev    # starts Vite dev server (port 8080 by default)
 - Frontend tests (Vitest):
   ```bash
   cd frontend
-  npm run test
+  npx vitest run
   ```
+
+> Note: You can also add `"test": "vitest run"` to `frontend/package.json` if you prefer `npm run test`.
 
 ## Testing
 Integration tests spin up an ephemeral Express + Socket.IO server (no fixed port) and hit REST + WebSocket flows end to end. Vitest runs the suite; supertest is used for HTTP and socket.io-client for WebSocket assertions. A test-only helper builds and tears down the server per suite.
@@ -109,9 +127,30 @@ Integration tests spin up an ephemeral Express + Socket.IO server (no fixed port
   - JS sandbox (vm2) and child_process executions are exercised in unit tests only, not during integration socket/API flows.
 
 ## Commands
-- `npm run dev`   – start the development server (run in respective package).
-- `npm run test`  – run the test suite (Vitest).
-- `npm run build` – frontend: production build (backend: not required; run frontend build from `frontend`).
+- Root:
+  - `npm run dev` – run both frontend and backend dev servers (via `concurrently`).
+- Backend:
+  - `npm run dev`  – start the Express + Socket.IO dev server.
+  - `npm run start` – start the server in production mode.
+  - `npm run test` – run backend unit + integration tests with Vitest.
+- Frontend:
+  - `npm run dev`   – start the Vite dev server.
+  - `npm run build` – production build.
+  - `npx vitest run` – run frontend test suite.
+
+## Continuous Integration (GitHub Actions)
+
+A GitHub Actions workflow is configured at `.github/workflows/ci.yml`:
+
+- **Triggers**:
+  - On pushes to `main`/`master`
+  - On all pull requests
+- **Jobs**:
+  - `frontend-tests`: installs `frontend` dependencies and runs `npx vitest run`.
+  - `backend-unit-tests`: installs `backend` dependencies and runs `npx vitest run tests/*.test.js`.
+  - `backend-integration-tests`: depends on unit tests and runs `npx vitest run tests/integration`.
+
+This ensures that frontend tests, backend unit tests, and backend integration/E2E tests all run in CI for every change.
 
 ## API Reference
 - `POST /rooms`  
